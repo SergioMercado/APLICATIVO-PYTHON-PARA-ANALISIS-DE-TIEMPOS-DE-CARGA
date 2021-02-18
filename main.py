@@ -11,21 +11,24 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 import os
 
 
-
-
 def dataF():
+
     filename = "data.csv"
     nombreColumnas = ["Porcentaje", "Tiempo"]
     dataFrame = pd.read_csv(
         filename, names=nombreColumnas, delimiter=",", header=0)
     dataFrameClean = dataFrame.drop([95, 96, 97, 98, 99])
+
     return dataFrameClean
 
 
 def regresionLineal(dataFrame):
+    txtAn.delete('1.0', END)
     arrayData = dataFrame.values
     X_reg = arrayData[:, 0:1]
     Y_reg = arrayData[:, 1:2]
@@ -106,7 +109,72 @@ def regresionLineal(dataFrame):
 
 
 def clustering(dataFrame):
-    print("none yet")
+    txtAn.delete('1.0', END)
+    nClust = comboClus.current()+1
+    if nClust == 0:
+        messagebox.showerror(
+            message="INGRESE NUMERO DE PETICIONES", title="ERROR!!!")
+    else:
+
+        arr = dataFrame.values
+        X = arr[:, 0:1]
+        Y = arr[:, 1:2]
+
+        plt.scatter(X, Y, c='g')
+
+        kmeans = KMeans(n_clusters=nClust)
+        kmeans.fit(arr)
+
+        txtAn.insert(
+            END, f"Los centroides del modelo son: \n{kmeans.cluster_centers_}\n")
+        txtAn.insert(END, f"Las etiquetas de cada punto \n{kmeans.labels_}\n")
+
+        i = 1
+        for x, y in kmeans.cluster_centers_:
+            txtAn.insert(END, "=====================\n")
+            txtAn.insert(END, f"Centroide {i}\n")
+            txtAn.insert(END, f"x es {x} y es {y}\n")
+            txtAn.insert(END, "=====================\n")
+            i += 1
+
+        centroids = kmeans.cluster_centers_
+        X_centroid = centroids[:, 0]
+        Y_centroid = centroids[:, 1]
+
+        plt.scatter(X_centroid, Y_centroid, c='g')
+        #plt.scatter(X, Y, c=kmeans.labels_, cmap="rainbow")
+
+        dbscan = DBSCAN(eps=6, min_samples=2)
+        dbscan.fit(arr)
+        # dbscan.labels_
+        plt.scatter(X, Y, c=dbscan.labels_, cmap="rainbow")
+        # plt.show()
+        # aqui
+
+        n_clus = len(set(dbscan.labels_))-(1 if -1 in dbscan.labels_ else 0)
+        num_noise = list(dbscan.labels_).count(-1)
+        txtAn.insert(END,
+                     f"Numero de clusters {n_clus} Número de puntos de ruido {num_noise}")
+
+        canvas1 = tk.Canvas(root, width=100, height=100)
+        # canvas1.pack()
+
+        label1 = tk.Label(root, text=centroids, justify='center')
+        canvas1.create_window(70, 50, window=label1)
+
+        figure1 = plt.Figure(figsize=(5, 4), dpi=100)
+
+        ax1 = figure1.add_subplot(1, 1, 1)
+
+        #"Porcentaje", "Tiempo"
+        ax1.scatter(dataFrame['Porcentaje'], dataFrame['Tiempo'],
+                    c=kmeans.labels_.astype(float), s=50, alpha=0.5)
+        ax1.scatter(centroids[:, 0], centroids[:, 1], c='red', s=50)
+
+        scatter1 = FigureCanvasTkAgg(figure1, root)
+        scatter1.get_tk_widget()
+        # .pack(side=tk.LEFT, fill=tk.BOTH)
+        scatter1.get_tk_widget().place(x=620, y=180)
 
 
 def runAB(n):
@@ -147,13 +215,14 @@ def runAB(n):
     txtRes.insert(1.0, str(res))
     dataF()
 
+
 def cleanAll():
     urlTexField.delete(0, 'end')
     cantPetiTexField.delete(0, 'end')
     cantConcuTexField.delete(0, 'end')
     comboTipo.current(0)
     comboClus.current(0)
-    
+
 
 def runFunt():
     numC = comboTipo.current()
@@ -165,28 +234,34 @@ def runFunt():
     if numC == 2:
         regresionLineal(dataF())
     cleanAll()
-#estetico
+# estetico
+
+
 def hide():
-    
+
     hideforCon()
     hideforSec()
+
 
 def hideforSec():
     textClus.place_forget()
     comboClus.place_forget()
 
+
 def hideforCon():
     textConcu.place_forget()
     cantConcuTexField.place_forget()
 
+
 def comboxTipoFunt(o):
-    n=comboTipo.current()
-        
+    n = comboTipo.current()
+
     if n == 1:
         showforSec()
 
-    if n ==2 : 
-        showforCon()    
+    if n == 2:
+        showforCon()
+
 
 def showforCon():
     textConcu.place(x=535, y=100)
@@ -194,11 +269,13 @@ def showforCon():
     hideforSec()
     print("forCon")
 
+
 def showforSec():
     textClus.place(x=535, y=100)
     comboClus.place(x=630, y=100)
     hideforCon()
     print("forSec")
+
 
 def cAll():
     urlTexField.delete(0, 'end')
@@ -208,11 +285,11 @@ def cAll():
     comboClus.current(0)
     txtRes.delete('1.0', END)
     txtAn.delete('1.0', END)
-    
+
 
 root = Tk()
 root.geometry("1150x1500+100+100")
-root.title("APATCSC")
+root.title("APATC-S/O")
 
 main = Frame(root)
 main.pack(fill=BOTH, expand=1)
@@ -270,7 +347,6 @@ cantPetiTexField.place(x=480, y=100)
 cantPetiTexField.insert(END, "")
 
 
-
 # cantida concurrentes Textfield
 textConcu = Label(root, text="# CONCURRENTES: ")
 textConcu.place(x=535, y=100)
@@ -309,8 +385,5 @@ Label(root, text="ANALISIS ").place(x=20, y=360)
 txtAn = scrolledtext.ScrolledText(root, width=70, height=10)
 txtAn.place(x=20, y=385)
 
-root.after(100,hide)
+root.after(100, hide)
 root.mainloop()
-
-
-
